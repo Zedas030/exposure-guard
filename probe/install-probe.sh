@@ -59,9 +59,31 @@ if [ -d /run/systemd/system ]; then
   systemctl daemon-reload
   systemctl enable --now exposure-probe-scan.timer exposure-probe-request.path
   systemctl reload ssh 2>/dev/null || systemctl reload sshd 2>/dev/null || true
+  # nothing besides sshd needs to listen (Oracle/Ubuntu images ship rpcbind)
+  systemctl disable --now rpcbind.socket rpcbind.service 2>/dev/null || true
   if [ "${SKIP_FIREWALL:-0}" != 1 ]; then
-    install -m 644 "$HERE/nftables.conf" /etc/nftables.conf
-    systemctl enable nftables && nft -c -f /etc/nftables.conf && systemctl restart nftables
+    if systemctl is-enabled netfilter-persistent >/dev/null 2>&1 && [ -s /etc/iptables/rules.v4 ]; then
+      # Provider image with its own iptables rules (e.g. Oracle Cloud: they also protect the metadata service).
+      # Keep IPv4 as shipped, add the same policy for IPv6: only SSH and ICMPv6 inbound.
+      cp -n /etc/iptables/rules.v6 /etc/iptables/rules.v6.bak-exposure-probe 2>/dev/null || true
+      cat > /etc/iptables/rules.v6 <<'EOF'
+# Exposure Guard probe: IPv6 inbound only SSH (+ ICMPv6 for neighbour discovery / PMTU)
+*filter
+:INPUT ACCEPT [0:0]
+:FORWARD DROP [0:0]
+:OUTPUT ACCEPT [0:0]
+-A INPUT -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+-A INPUT -i lo -j ACCEPT
+-A INPUT -p ipv6-icmp -j ACCEPT
+-A INPUT -p tcp -m conntrack --ctstate NEW -m tcp --dport 22 -j ACCEPT
+-A INPUT -j REJECT --reject-with icmp6-adm-prohibited
+COMMIT
+EOF
+      ip6tables-restore < /etc/iptables/rules.v6
+    else
+      install -m 644 "$HERE/nftables.conf" /etc/nftables.conf
+      systemctl enable nftables && nft -c -f /etc/nftables.conf && systemctl restart nftables
+    fi
   fi
   systemctl enable --now unattended-upgrades 2>/dev/null || true
 fi

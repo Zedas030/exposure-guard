@@ -93,3 +93,19 @@ def test_router_lan_ipv6_counts_as_router():
                                      "ipv6": ["2001:db8:1:5e00:a8bb:ccff:fe00:1"], "hostname": "router", "vendor": "AVM"}}
     text, facts = external.attribute(snap, devices, "2001:db8:1:5e00:a8bb:ccff:fe00:1", "tcp", 47743)
     assert facts["via"] == "router-remote-access"
+
+
+def test_ssh_command_ipv6_without_brackets(monkeypatch):
+    import subprocess as sp
+    from exposure_guard.crypto import GuardKeys
+    calls = []
+
+    class R:
+        returncode, stdout, stderr = 255, "", "unreachable"
+    monkeypatch.setattr(sp, "run", lambda cmd, **kw: calls.append(cmd) or R())
+    c = external.ProbeClient(from_dict({}), GuardKeys("/nonexistent"), host="2001:db8::5")
+    try:
+        c._ssh("health")
+    except external.ProbeError:
+        pass
+    assert "probe@2001:db8::5" in calls[0]

@@ -37,7 +37,7 @@ class ProbeClient:
     def _ssh(self, verb: str, stdin: str | None = None, timeout: int = 120) -> str:
         if not self.host:
             raise ProbeError("external.probe_host not configured")
-        host = f"[{self.host}]" if ":" in self.host else self.host
+        host = self.host  # ssh takes IPv6 literals as user@2001:db8::1 (no brackets; port goes via -p)
         cmd = ["ssh", "-i", self.identity, "-p", str(self.port), "-o", "BatchMode=yes", "-o", "IdentitiesOnly=yes",
                "-o", f"UserKnownHostsFile={self.known_hosts}", "-o", "StrictHostKeyChecking=yes",
                "-o", f"ConnectTimeout={self.timeout}", "-o", "ServerAliveInterval=15", "-o", "LogLevel=ERROR",
