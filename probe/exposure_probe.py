@@ -29,7 +29,7 @@ from nacl.exceptions import BadSignatureError
 from nacl.public import PublicKey, SealedBox
 from nacl.signing import SigningKey, VerifyKey
 
-VERSION = "1.0.0"
+VERSION = "1.0.1"
 CONF = os.environ.get("EXPOSURE_PROBE_CONF", "/etc/exposure-probe/probe.json")
 KEY = os.environ.get("EXPOSURE_PROBE_KEY", "/etc/exposure-probe/probe_sign.key")
 STATE = os.environ.get("EXPOSURE_PROBE_STATE", "/var/lib/exposure-probe")
@@ -205,7 +205,8 @@ def run_scan(profile: str) -> int:
         result["profile"] = profile
         result["targets_seq"], result["targets"] = tg["seq"], tg["targets"]
         rate = str(tg["max_rate"])
-        common = ["-sS", "-sV", "--version-light", "--max-retries", "1", "--max-rate", rate,
+        # full version detection (intensity 7) - it only runs against the few open ports and identifies TLS services
+        common = ["-sS", "-sV", "--max-retries", "1", "--max-rate", rate,
                   "--host-timeout", "150m", "--script", SCRIPTS, "--script-timeout", "90s"]
         daily_ports = "T:" + compress_ranges(top_tcp_ports(tg["tcp_top"]) + tg["extra_tcp_ports"])
         for fam in ("v4", "v6"):
@@ -225,7 +226,9 @@ def run_scan(profile: str) -> int:
                                            f"{fam}-tcp-top", 3 * 3600))
             routers = [t["addr"] for t in fam_t if t["role"] == "router"]
             if routers and tg["udp_ports"]:
-                result["runs"].append(nmap(six + ["-sU", "-sV", "--version-intensity", "0", "--max-retries", "2",
+                # no -sV for UDP: routers answer closed UDP ports with ICMPv6 "administratively prohibited", which
+                # makes nmap's version probes abort (EACCES); open/closed state is all we need here
+                result["runs"].append(nmap(six + ["-sU", "--max-retries", "2",
                                                   "--max-rate", rate, "--host-timeout", "30m",
                                                   "-p", "U:" + compress_ranges(tg["udp_ports"])] + routers,
                                            f"{fam}-udp", 3600))
