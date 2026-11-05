@@ -19,6 +19,7 @@ chmod 700 "$DST/data/ssh" "$DST/data/keys"
 rm -rf "$DST/exposure_guard" "$DST/probe"
 cp -r "$SRC/exposure_guard" "$SRC/probe" "$DST/"
 find "$DST/exposure_guard" -name __pycache__ -prune -exec rm -rf {} +
+install -d -m 755 "$DST/scripts" && install -m 755 "$SRC/scripts/set-secrets.sh" "$DST/scripts/"
 install -m 644 "$SRC/Dockerfile" "$SRC/docker-compose.yml" "$SRC/pyproject.toml" "$SRC/README.md" "$SRC/LICENSE" "$DST/"
 install -m 644 "$SRC/config/config.example.yaml" "$SRC/config/acks.example.yaml" "$DST/config/"
 mkdir -p "$DST/tests" && cp -r "$SRC/tests/unit" "$SRC/tests/fakes" "$DST/tests/"
