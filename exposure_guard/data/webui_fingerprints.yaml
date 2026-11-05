@@ -1,0 +1,84 @@
+# Known web interfaces. Detection ONLY from the start page (title, Server header, body markers).
+# Exposure Guard never sends credentials. 'default_login' documents what the vendor ships with, so you can verify
+# it was changed; 'unauthenticated' means the UI has no login unless one is configured.
+# Matching: all given patterns must match (case-insensitive regular expressions).
+- name: Tasmota
+  body: 'Tasmota'
+  unauthenticated: true
+  advice: "Set a web admin password (Configuration > Other > Web Admin Password) or disable the web server."
+- name: ESPHome web server
+  body: 'esphome|esp-app'
+  unauthenticated: true
+  advice: "Add 'auth:' (username/password) to the web_server: block of the ESPHome YAML or remove web_server."
+- name: Shelly (Gen1/Gen2)
+  body: 'shelly'
+  unauthenticated: true
+  advice: "Enable 'Restrict login' / authentication in the Shelly settings."
+- name: OpenWrt LuCI
+  body: 'luci|openwrt'
+  default_login: "root / no password on fresh installs"
+  advice: "Make sure a root password is set (System > Administration) and LuCI is only on the LAN."
+- name: Node-RED
+  title: 'Node-RED'
+  unauthenticated: true
+  advice: "Enable adminAuth in settings.js."
+- name: Zigbee2MQTT frontend
+  title: 'Zigbee2MQTT'
+  unauthenticated: true
+  advice: "Set frontend.auth_token in the Zigbee2MQTT configuration."
+- name: Grafana
+  title: 'Grafana'
+  default_login: "admin / admin (change forced at first login)"
+  advice: "Confirm the admin password was changed; disable anonymous access unless intended."
+- name: Hikvision camera/NVR
+  body: 'hikvision|doc/page/login\.asp'
+  default_login: "admin / 12345 on older firmware"
+  advice: "Verify a strong password, update the firmware, keep the camera off the internet."
+- name: Dahua camera/NVR
+  body: 'dahua'
+  default_login: "admin / admin on older firmware"
+  advice: "Verify a strong password and update the firmware."
+- name: TP-Link router/access point/extender
+  body: 'tp-?link'
+  title: '^(?!.*tapo).*'
+  default_login: "admin / admin on older models"
+  advice: "Verify the admin password was changed; disable remote management."
+- name: Netgear
+  body: 'netgear'
+  default_login: "admin / password"
+  advice: "Verify the admin password was changed."
+- name: D-Link
+  body: 'd-link'
+  default_login: "admin / (empty)"
+  advice: "Verify the admin password was changed."
+- name: ASUS router
+  body: 'asus(wrt)?'
+  title: 'asus'
+  default_login: "admin / admin on older models"
+  advice: "Verify the admin password was changed; disable WAN access to the web UI."
+- name: HP printer (Embedded Web Server)
+  body: 'hewlett|hp (laserjet|officejet|deskjet|envy|color)'
+  default_login: "often no admin password set"
+  advice: "Set an administrator password in the printer's EWS (Security > General Security)."
+- name: Brother printer
+  body: 'brother'
+  default_login: "'initpass' or the password on the device label (older models: 'access')"
+  advice: "Set an individual administrator password."
+- name: Epson printer
+  body: 'epson'
+  default_login: "often no admin password set (newer models: serial number)"
+  advice: "Set an administrator password (Web Config > Administrator Settings)."
+- name: SONOFF / ITEAD device
+  body: 'sonoff|itead'
+  default_login: "vendor default documented in the manual"
+  advice: "Verify an individual password is set on the web UI."
+- name: Growatt ShineWiFi / ShineLink
+  body: 'growatt|shinewifi|shinelan'
+  default_login: "vendor default documented in the manual"
+  advice: "Verify the local web UI password was changed."
+- name: Portainer
+  title: 'Portainer'
+  advice: "Make sure the admin account was created (first-start takeover risk) and access is restricted."
+- name: Uptime Kuma
+  title: 'Uptime Kuma'
+  advice: "Make sure the initial setup was completed (otherwise anyone can create the admin)."

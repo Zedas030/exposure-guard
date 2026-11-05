@@ -1,0 +1,25 @@
+[Unit]
+Description=Exposure Guard probe - on-demand daily scan (requested by the guard)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=probe
+Group=probe
+Environment=TZ=Europe/Berlin
+ExecStart=/usr/local/bin/exposure-probe run daily
+# raw sockets for nmap SYN/UDP scans - nothing else
+AmbientCapabilities=CAP_NET_RAW CAP_NET_ADMIN
+CapabilityBoundingSet=CAP_NET_RAW CAP_NET_ADMIN
+NoNewPrivileges=true
+ProtectSystem=strict
+ReadWritePaths=/var/lib/exposure-probe
+ProtectHome=true
+PrivateTmp=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+Nice=5
+TimeoutStartSec=8h

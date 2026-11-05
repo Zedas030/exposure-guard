@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<nmaprun scanner="nmap" args="nmap --privileged -n -Pn -sS -p T:443,32400,47743 198.51.100.7" start="1762318800">
+<host starttime="1762318801" endtime="1762318900"><status state="up" reason="user-set"/>
+<address addr="198.51.100.7" addrtype="ipv4"/>
+<ports>
+<port protocol="tcp" portid="47743"><state state="open" reason="syn-ack"/><service name="https" product="AVM FRITZ!Box http config" tunnel="ssl"/>
+<script id="ssl-cert" output="Subject: commonName=example.myfritz.net">
+<table key="subject"><elem key="commonName">example.myfritz.net</elem></table>
+<table key="issuer"><elem key="commonName">R11</elem><elem key="organizationName">Let's Encrypt</elem></table>
+<table key="pubkey"><elem key="type">rsa</elem><elem key="bits">2048</elem></table>
+<elem key="sig_algo">sha256WithRSAEncryption</elem>
+<table key="validity"><elem key="notBefore">2026-10-01T00:00:00</elem><elem key="notAfter">2099-12-30T00:00:00</elem></table>
+</script>
+<script id="ssl-enum-ciphers" output="...">
+<table key="TLSv1.2"><table key="ciphers"><table><elem key="name">TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256</elem><elem key="strength">A</elem></table></table></table>
+<table key="TLSv1.3"><table key="ciphers"><table><elem key="name">TLS_AKE_WITH_AES_128_GCM_SHA256</elem><elem key="strength">A</elem></table></table></table>
+<elem key="least strength">A</elem>
+</script>
+</port>
+<port protocol="tcp" portid="32400"><state state="open" reason="syn-ack"/><service name="http" product="Plex Media Server" version="1.40"/></port>
+<port protocol="tcp" portid="443"><state state="filtered" reason="no-response"/><service name="https"/></port>
+</ports></host>
+<runstats><finished time="1762318900" exit="success"/></runstats>
+</nmaprun>

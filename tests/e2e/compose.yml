@@ -1,0 +1,39 @@
+# End-to-end test environment (no access to the real network). Driven by tests/e2e/run_e2e.py.
+name: exposure-guard-e2e
+networks:
+  e2e:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.31.250.0/24
+services:
+  fakefritz:
+    image: exposure-guard:e2e-base
+    command: ["python3", "/opt/exposure-guard/tests/fakes/fakefritz.py", "49000"]
+    networks: {e2e: {ipv4_address: 172.31.250.2}}
+    ports: ["127.0.0.1:14900:49000"]
+  fakeha:
+    image: exposure-guard:e2e-base
+    command: ["python3", "/opt/exposure-guard/tests/fakes/fakeha.py", "8123"]
+    networks: {e2e: {ipv4_address: 172.31.250.3}}
+    ports: ["127.0.0.1:18123:8123"]
+  target:
+    image: exposure-guard:e2e-base
+    command: ["python3", "/opt/exposure-guard/tests/e2e/target.py", "7000"]
+    networks: {e2e: {ipv4_address: 172.31.250.10}}
+    ports: ["127.0.0.1:17000:7000"]
+  probe:
+    image: exposure-guard:e2e-probe
+    networks: {e2e: {ipv4_address: 172.31.250.20}}
+  guard:
+    image: exposure-guard:e2e-app
+    networks: {e2e: {ipv4_address: 172.31.250.30}}
+    env_file: ./work/.env
+    volumes:
+      - ./work/config:/config:ro
+      - ./work/acks:/acks
+      - ./work/data:/data
+    read_only: true
+    tmpfs: ["/tmp"]
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]

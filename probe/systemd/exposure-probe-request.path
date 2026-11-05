@@ -1,0 +1,9 @@
+[Unit]
+Description=Exposure Guard probe - watch for scan requests from the guard
+
+[Path]
+PathExists=/var/lib/exposure-probe/scan-request
+Unit=exposure-probe-request.service
+
+[Install]
+WantedBy=multi-user.target

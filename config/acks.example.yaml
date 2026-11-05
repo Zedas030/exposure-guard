@@ -1,0 +1,10 @@
+# Exposure Guard - acknowledged findings.
+# One entry per finding: id (from the UI/CLI, wildcards * allowed), reason, optional until (date).
+# 'fingerprint' binds the ack to the state it was given for; when the finding changes it alerts again.
+# Entries without fingerprint are bound to the state seen when they are first applied.
+acks:
+  - id: "ext:v4:tcp/47743"
+    reason: "Router remote access, deliberately enabled"
+    by: admin
+  - id: "router:remote-access"
+    reason: "Deliberately enabled, strong password + 2FA"

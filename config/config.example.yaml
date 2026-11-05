@@ -1,0 +1,85 @@
+# Exposure Guard - configuration.
+# Secrets are NOT stored here, only the names of the environment variables that hold them (see .env.example).
+# After a change: docker compose restart exposure-guard
+
+general:
+  listen_port: 8103                    # web UI, JSON API and /metrics
+  public_url: "http://192.0.2.10:8103" # link in notifications (address of the host running the guard)
+  timezone: Europe/Berlin              # for schedules and report times
+  log_level: INFO
+
+ui:
+  home_url: ""                         # optional link back to your dashboard
+  home_label: "Dashboard"
+
+network:
+  lan_cidr: 192.168.10.0/24           # your LAN - LAN checks never leave this network
+  interface: eth0                      # host interface in the LAN (IPv6 neighbour discovery)
+
+fritzbox:
+  enabled: true
+  host: 192.168.10.1
+  port: 49000                          # TR-064 / UPnP port of the FRITZ!Box
+  user_env: FRITZ_USER                 # dedicated user, right "FRITZ!Box settings" only, no internet access
+  password_env: FRITZ_PASSWORD
+
+inventory:
+  use_fritz_hosts: true                # device list of the router (TR-064)
+  use_neighbors: true                  # ARP table of this host
+  ipv6_discovery: true                 # ONE ICMPv6 echo to ff02::1 per run to learn global IPv6 addresses
+  ipv6_keep_hours: 24                  # IPv6 addresses seen within this window are scanned from outside
+  max_ipv6_targets: 64
+  known_devices: {}                    # optional: MACs that are never reported, e.g. "aa:bb:cc:dd:ee:ff": "NAS"
+
+external:
+  enabled: true
+  probe_host: "203.0.113.20"           # IPv4 of the VPS running exposure-probe
+  probe_host_v6: ""                    # optional IPv6 of the VPS: second health check over IPv6 (checks the prefix)
+  probe_port: 22
+  probe_user: probe
+  probe_verify_key: ""                 # public signing key printed by `exposure-probe init` on the VPS
+  fetch_minutes: 30                    # how often results are pulled (scans run on the probe's own timer)
+  stale_hours: 26                      # older than this = external view UNKNOWN (never "all clear")
+  unreachable_after: 3                 # failed contacts in a row before a warning (3 x 30 min)
+  scan_on_ip_change: true              # ask the probe for an immediate scan after an IP/prefix change
+  ip_crosscheck: true                  # compare the router's public IP with the source address the probe sees
+  extra_tcp_ports: []                  # scanned daily in addition to the top-1000 ports (router remote-access
+                                       # port and all forwarded ports are added automatically)
+  udp_ports: [500, 4500, 51820, 1194, 3478, 5060]   # router only: IPsec, WireGuard, OpenVPN, STUN, SIP
+  max_rate: 300                        # packets per second from the probe
+  ipv6_devices: true                   # also scan every global IPv6 address of LAN devices from outside
+
+lan_web:
+  enabled: true
+  weekday: sun                         # weekly, gentle: nmap -sT -T2, max_rate packets/s, one GET per start page
+  time: "04:30"
+  max_rate: 20
+  request_pause: 0.5
+  exclude: []                          # IPs or MACs never touched by the LAN web check
+  # ports: [...]                       # default list covers the usual web UI ports
+
+tls:
+  warn_days: 30                        # certificate expiry warning
+
+tailscale:
+  enabled: true
+  socket: /var/run/tailscale/tailscaled.sock
+  poll_minutes: 60
+  key_expiry_warn_days: 14
+  api_enabled: true                    # ACL/policy check; needs a read-only OAuth client (see README)
+  client_id_env: TS_OAUTH_CLIENT_ID
+  client_secret_env: TS_OAUTH_CLIENT_SECRET
+  tailnet: "-"                         # "-" = the tailnet of the OAuth client
+
+schedule:
+  local_minutes: 10                    # router + inventory
+  weekly_report: {weekday: sun, time: "18:00"}
+
+homeassistant:
+  enabled: true
+  url: http://127.0.0.1:8123
+  token_env: HA_TOKEN                  # long-lived access token
+  notify_service: notify.mobile_app_phone
+  sensor_prefix: sensor.exposure_guard
+  notify_ip_change: true               # push when the public IPv4 / IPv6 prefix changes
+  remind_critical_hours: 0             # >0: repeat unacknowledged critical alerts after this many hours

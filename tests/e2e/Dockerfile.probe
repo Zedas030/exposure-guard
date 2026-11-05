@@ -1,0 +1,8 @@
+# E2E stand-in for the VPS: Debian + sshd + the real probe installed by the real install script.
+FROM debian:trixie-slim
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get update && apt-get install -y --no-install-recommends python3 python3-nacl nmap iproute2 openssh-server \
+      libcap2-bin tzdata ca-certificates && rm -rf /var/lib/apt/lists/* \
+ && setcap cap_net_raw+eip /usr/bin/nmap && mkdir -p /run/sshd && ssh-keygen -A
+COPY probe /src/probe
+CMD ["/usr/sbin/sshd", "-D", "-e"]

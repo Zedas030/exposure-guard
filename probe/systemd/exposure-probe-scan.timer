@@ -1,0 +1,10 @@
+[Unit]
+Description=Exposure Guard probe - daily scan 05:00 (full TCP scan on Saturdays)
+
+[Timer]
+OnCalendar=*-*-* 05:00:00 Europe/Berlin
+Persistent=true
+RandomizedDelaySec=120
+
+[Install]
+WantedBy=timers.target

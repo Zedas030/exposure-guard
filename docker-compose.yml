@@ -1,0 +1,34 @@
+# Exposure Guard - start: docker compose up -d --build
+services:
+  exposure-guard:
+    build:
+      context: .
+      target: app
+    image: exposure-guard:1.0.0
+    container_name: exposure-guard
+    restart: unless-stopped              # autostart after reboot
+    network_mode: host                   # needs the host's ARP/NDP tables, the LAN and HA on 127.0.0.1; UI on :8103
+    env_file: .env                       # FRITZ_USER/PASSWORD, HA_TOKEN, TS_OAUTH_* (chmod 600)
+    environment:
+      TZ: Europe/Berlin
+    volumes:
+      - ./config:/config:ro              # config.yaml (read-only)
+      - ./acks:/acks                     # acks.yaml (written by `exposure-guard ack`)
+      - ./data:/data                     # state.db, reports, keys, ssh key for the probe
+      - /var/run/tailscale/tailscaled.sock:/var/run/tailscale/tailscaled.sock   # read-only LocalAPI status
+    mem_limit: 256m
+    memswap_limit: 256m
+    cpus: 0.5
+    pids_limit: 128
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL                              # TCP connect scans and ICMP datagram sockets need no capabilities
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

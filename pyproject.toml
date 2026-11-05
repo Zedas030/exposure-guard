@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "exposure-guard"
+version = "1.0.0"
+description = "Watches what your home network exposes to the internet: UPnP port forwards, external scans via a VPS probe, IPv6 reachability, LAN drift, TLS, Tailscale."
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.11"
+dependencies = ["pyyaml>=6.0", "pynacl>=1.5", "cryptography>=41"]
+
+[project.optional-dependencies]
+test = ["pytest>=8"]
+
+[project.scripts]
+exposure-guard = "exposure_guard.cli:main"
+
+[tool.setuptools]
+packages = ["exposure_guard"]
+
+[tool.setuptools.package-data]
+exposure_guard = ["static/*", "data/*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests/unit"]

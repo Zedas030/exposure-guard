@@ -1,0 +1,505 @@
+{
+ "uid": "exposure-guard",
+ "title": "Exposure Guard",
+ "schemaVersion": 39,
+ "version": 1,
+ "refresh": "1m",
+ "time": {
+  "from": "now-7d",
+  "to": "now"
+ },
+ "tags": [
+  "security",
+  "homelab"
+ ],
+ "timezone": "browser",
+ "panels": [
+  {
+   "type": "stat",
+   "title": "Overall state",
+   "gridPos": {
+    "x": 0,
+    "y": 0,
+    "w": 6,
+    "h": 4
+   },
+   "datasource": {
+    "type": "prometheus",
+    "uid": "${ds}"
+   },
+   "targets": [
+    {
+     "expr": "max(exposure_guard_status{state=\"attention\"}*1 or exposure_guard_status{state=\"degraded\"}*2 or exposure_guard_status{state=\"unknown\"}*3 or exposure_guard_status{state=\"alert\"}*4 or exposure_guard_status{state=\"ok\"}*0)",
+     "refId": "A",
+     "legendFormat": "{{state}}"
+    }
+   ],
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ]
+    },
+    "colorMode": "background",
+    "textMode": "auto"
+   },
+   "fieldConfig": {
+    "defaults": {
+     "mappings": [
+      {
+       "type": "value",
+       "options": {
+        "0": {
+         "text": "ok",
+         "color": "green"
+        },
+        "1": {
+         "text": "findings",
+         "color": "yellow"
+        },
+        "2": {
+         "text": "DEGRADED",
+         "color": "orange"
+        },
+        "3": {
+         "text": "UNKNOWN",
+         "color": "orange"
+        },
+        "4": {
+         "text": "ALERT",
+         "color": "red"
+        }
+       }
+      }
+     ]
+    }
+   },
+   "id": 1
+  },
+  {
+   "type": "stat",
+   "title": "Critical open",
+   "gridPos": {
+    "x": 6,
+    "y": 0,
+    "w": 6,
+    "h": 4
+   },
+   "datasource": {
+    "type": "prometheus",
+    "uid": "${ds}"
+   },
+   "targets": [
+    {
+     "expr": "exposure_guard_findings_open{severity=\"critical\"}",
+     "refId": "A",
+     "legendFormat": "{{state}}"
+    }
+   ],
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ]
+    },
+    "colorMode": "background",
+    "textMode": "auto"
+   },
+   "fieldConfig": {
+    "defaults": {
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "green",
+        "value": null
+       },
+       {
+        "color": "red",
+        "value": 1
+       }
+      ]
+     }
+    }
+   },
+   "id": 2
+  },
+  {
+   "type": "stat",
+   "title": "Ports reachable from the internet",
+   "gridPos": {
+    "x": 12,
+    "y": 0,
+    "w": 6,
+    "h": 4
+   },
+   "datasource": {
+    "type": "prometheus",
+    "uid": "${ds}"
+   },
+   "targets": [
+    {
+     "expr": "sum(exposure_guard_external_open_ports)",
+     "refId": "A",
+     "legendFormat": "{{state}}"
+    }
+   ],
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ]
+    },
+    "colorMode": "background",
+    "textMode": "auto"
+   },
+   "fieldConfig": {
+    "defaults": {
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "green",
+        "value": null
+       },
+       {
+        "color": "yellow",
+        "value": 1
+       }
+      ]
+     }
+    }
+   },
+   "id": 3
+  },
+  {
+   "type": "stat",
+   "title": "Age of external view",
+   "gridPos": {
+    "x": 18,
+    "y": 0,
+    "w": 6,
+    "h": 4
+   },
+   "datasource": {
+    "type": "prometheus",
+    "uid": "${ds}"
+   },
+   "targets": [
+    {
+     "expr": "time() - exposure_guard_external_last_scan_timestamp_seconds",
+     "refId": "A",
+     "legendFormat": "{{state}}"
+    }
+   ],
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ]
+    },
+    "colorMode": "background",
+    "textMode": "auto"
+   },
+   "fieldConfig": {
+    "defaults": {
+     "unit": "s",
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "green",
+        "value": null
+       },
+       {
+        "color": "orange",
+        "value": 93600
+       }
+      ]
+     }
+    }
+   },
+   "id": 4
+  },
+  {
+   "type": "stat",
+   "title": "UPnP forwardings",
+   "gridPos": {
+    "x": 0,
+    "y": 4,
+    "w": 6,
+    "h": 4
+   },
+   "datasource": {
+    "type": "prometheus",
+    "uid": "${ds}"
+   },
+   "targets": [
+    {
+     "expr": "exposure_guard_port_mappings{origin=\"upnp\"}",
+     "refId": "A",
+     "legendFormat": "{{state}}"
+    }
+   ],
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ]
+    },
+    "colorMode": "background",
+    "textMode": "auto"
+   },
+   "fieldConfig": {
+    "defaults": {
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "green",
+        "value": null
+       },
+       {
+        "color": "red",
+        "value": 1
+       }
+      ]
+     }
+    }
+   },
+   "id": 5
+  },
+  {
+   "type": "stat",
+   "title": "Manual forwardings",
+   "gridPos": {
+    "x": 6,
+    "y": 4,
+    "w": 6,
+    "h": 4
+   },
+   "datasource": {
+    "type": "prometheus",
+    "uid": "${ds}"
+   },
+   "targets": [
+    {
+     "expr": "exposure_guard_port_mappings{origin=\"manual\"}",
+     "refId": "A",
+     "legendFormat": "{{state}}"
+    }
+   ],
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ]
+    },
+    "colorMode": "background",
+    "textMode": "auto"
+   },
+   "fieldConfig": {
+    "defaults": {}
+   },
+   "id": 6
+  },
+  {
+   "type": "stat",
+   "title": "LAN devices",
+   "gridPos": {
+    "x": 12,
+    "y": 4,
+    "w": 6,
+    "h": 4
+   },
+   "datasource": {
+    "type": "prometheus",
+    "uid": "${ds}"
+   },
+   "targets": [
+    {
+     "expr": "exposure_guard_devices",
+     "refId": "A",
+     "legendFormat": "{{state}}"
+    }
+   ],
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ]
+    },
+    "colorMode": "background",
+    "textMode": "auto"
+   },
+   "fieldConfig": {
+    "defaults": {}
+   },
+   "id": 7
+  },
+  {
+   "type": "stat",
+   "title": "Heartbeat age",
+   "gridPos": {
+    "x": 18,
+    "y": 4,
+    "w": 6,
+    "h": 4
+   },
+   "datasource": {
+    "type": "prometheus",
+    "uid": "${ds}"
+   },
+   "targets": [
+    {
+     "expr": "time() - exposure_guard_last_publish_timestamp_seconds",
+     "refId": "A",
+     "legendFormat": "{{state}}"
+    }
+   ],
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ]
+    },
+    "colorMode": "background",
+    "textMode": "auto"
+   },
+   "fieldConfig": {
+    "defaults": {
+     "unit": "s",
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "green",
+        "value": null
+       },
+       {
+        "color": "red",
+        "value": 900
+       }
+      ]
+     }
+    }
+   },
+   "id": 8
+  },
+  {
+   "type": "timeseries",
+   "title": "Open findings by severity",
+   "gridPos": {
+    "x": 0,
+    "y": 8,
+    "w": 12,
+    "h": 8
+   },
+   "datasource": {
+    "type": "prometheus",
+    "uid": "${ds}"
+   },
+   "targets": [
+    {
+     "expr": "exposure_guard_findings_open",
+     "legendFormat": "{{severity}}",
+     "refId": "A"
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {}
+   },
+   "id": 9
+  },
+  {
+   "type": "timeseries",
+   "title": "Checks failing (consecutive failures)",
+   "gridPos": {
+    "x": 12,
+    "y": 8,
+    "w": 12,
+    "h": 8
+   },
+   "datasource": {
+    "type": "prometheus",
+    "uid": "${ds}"
+   },
+   "targets": [
+    {
+     "expr": "exposure_guard_source_failures",
+     "legendFormat": "{{source}}",
+     "refId": "A"
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {}
+   },
+   "id": 10
+  },
+  {
+   "type": "timeseries",
+   "title": "Ports reachable from the internet",
+   "gridPos": {
+    "x": 0,
+    "y": 16,
+    "w": 12,
+    "h": 8
+   },
+   "datasource": {
+    "type": "prometheus",
+    "uid": "${ds}"
+   },
+   "targets": [
+    {
+     "expr": "exposure_guard_external_open_ports",
+     "legendFormat": "{{family}}",
+     "refId": "A"
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {}
+   },
+   "id": 11
+  },
+  {
+   "type": "timeseries",
+   "title": "Certificate days left",
+   "gridPos": {
+    "x": 12,
+    "y": 16,
+    "w": 12,
+    "h": 8
+   },
+   "datasource": {
+    "type": "prometheus",
+    "uid": "${ds}"
+   },
+   "targets": [
+    {
+     "expr": "exposure_guard_tls_cert_days_left",
+     "legendFormat": "{{target}}",
+     "refId": "A"
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "unit": "d"
+    }
+   },
+   "id": 12
+  }
+ ],
+ "templating": {
+  "list": [
+   {
+    "name": "ds",
+    "type": "datasource",
+    "query": "prometheus",
+    "current": {
+     "text": "Prometheus",
+     "value": "prometheus"
+    }
+   }
+  ]
+ }
+}

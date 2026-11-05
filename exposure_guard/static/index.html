@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Exposure Guard</title>
+<link rel="stylesheet" href="/static/theme.css">
+<link rel="stylesheet" href="/static/app.css">
+<script src="/static/boot.js"></script>
+</head>
+<body>
+<header class="top">
+  <div class="brand"><span class="logo" aria-hidden="true">&#x1F6E1;</span><div><h1>Exposure Guard</h1>
+    <p class="sub">What the internet can reach - and what changed in the LAN</p></div></div>
+  <div class="actions"><a id="home" class="btn" hidden></a><button id="theme" class="btn" type="button">Theme</button></div>
+</header>
+<main>
+  <section id="banner" class="banner" hidden></section>
+  <section class="cards" id="cards"></section>
+  <section class="panel">
+    <div class="panel-head"><h2>Findings</h2>
+      <div class="seg" role="tablist">
+        <button class="on" data-filter="attention">Needs attention</button>
+        <button data-filter="baseline">Baseline</button>
+        <button data-filter="acked">Acknowledged</button>
+        <button data-filter="all">All open</button>
+      </div></div>
+    <p class="hint">Acknowledge on the Pi: <code>exposure-guard ack &lt;id&gt; "reason"</code> or in <code>acks.yaml</code>.
+      An acknowledgement holds until the finding changes.</p>
+    <div id="findings"></div>
+  </section>
+  <section class="grid2">
+    <div class="panel"><h2>External view</h2><div id="external"></div></div>
+    <div class="panel"><h2>Router</h2><div id="router"></div></div>
+  </section>
+  <section class="panel"><h2>Checks</h2><div id="health"></div></section>
+  <section class="panel"><h2>Reports</h2><div id="reports"></div></section>
+</main>
+<footer id="foot"></footer>
+<script src="/static/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,47 @@
+# Home Assistant automation: dead man's switch for Exposure Guard.
+# Covers what the guard cannot report itself: the container is dead or cannot reach Home Assistant.
+# The guard updates sensor.exposure_guard (attribute "heartbeat") at least every 5 minutes.
+# Replace notify.mobile_app_phone with your notify service.
+id: exposure_guard_dead_mans_switch
+alias: "Exposure Guard: dead man's switch"
+description: "Alerts when Exposure Guard stops reporting (heartbeat older than 30 min) or reports state unknown/degraded for 2 h."
+mode: single
+triggers:
+  - trigger: state
+    entity_id: sensor.exposure_guard
+    attribute: heartbeat
+    for: "00:30:00"
+    id: stale
+  - trigger: state
+    entity_id: sensor.exposure_guard
+    to: ["unknown", "degraded"]
+    for: "02:00:00"
+    id: blind
+  - trigger: homeassistant
+    event: start
+    id: start
+actions:
+  - choose:
+      - conditions: [{condition: trigger, id: start}]
+        sequence:
+          - wait_template: "{{ states('sensor.exposure_guard') not in ['unknown', 'unavailable'] or state_attr('sensor.exposure_guard', 'heartbeat') }}"
+            timeout: "00:30:00"
+            continue_on_timeout: true
+          - condition: template
+            value_template: "{{ not wait.completed }}"
+          - action: notify.mobile_app_phone
+            data:
+              title: "Exposure Guard is silent"
+              message: "30 minutes after Home Assistant started, sensor.exposure_guard has not reported. Check: docker ps --filter name=exposure-guard; docker logs exposure-guard"
+      - conditions: [{condition: trigger, id: stale}]
+        sequence:
+          - action: notify.mobile_app_phone
+            data:
+              title: "Exposure Guard stopped reporting"
+              message: "No heartbeat for 30 minutes - the exposure checks are NOT running. Check: docker ps --filter name=exposure-guard; docker logs --tail 50 exposure-guard"
+      - conditions: [{condition: trigger, id: blind}]
+        sequence:
+          - action: notify.mobile_app_phone
+            data:
+              title: "Exposure Guard has been blind for 2 h"
+              message: "State {{ states('sensor.exposure_guard') }}: {{ state_attr('sensor.exposure_guard', 'external_stale') or state_attr('sensor.exposure_guard', 'broken_sources') }}"
