@@ -85,3 +85,11 @@ def test_build_targets(tmp_path):
     roles = {t["addr"]: (t["role"], t["full"]) for t in doc["targets"]}
     assert roles["198.51.100.7"] == ("router", True) and roles["2001:db8:1:5e00:2:2ff:fe00:1"] == ("device", True)
     assert 47743 in doc["extra_tcp_ports"] and 32400 in doc["extra_tcp_ports"]
+
+
+def test_router_lan_ipv6_counts_as_router():
+    snap = dict(SNAP, ipv4="", ipv6="2001:db8:8000:ff::1", dslite=True, router_mac="aa:bb:cc:00:00:01")
+    devices = {"aa:bb:cc:00:00:01": {"mac": "aa:bb:cc:00:00:01", "ips": ["192.168.10.1"],
+                                     "ipv6": ["2001:db8:1:5e00:a8bb:ccff:fe00:1"], "hostname": "router", "vendor": "AVM"}}
+    text, facts = external.attribute(snap, devices, "2001:db8:1:5e00:a8bb:ccff:fe00:1", "tcp", 47743)
+    assert facts["via"] == "router-remote-access"

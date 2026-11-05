@@ -86,10 +86,14 @@ def build_targets(cfg, store, fritz_snap: dict | None) -> dict:
     if snap.get("ipv6"):
         targets.append({"addr": snap["ipv6"], "role": "router", "full": True, "label": "router IPv6 (WAN)"})
     if ext["ipv6_devices"]:
+        rmac = snap.get("router_mac", "")
         for t in ipv6_targets(cfg, store, time.time()):
             if t["addr"] == snap.get("ipv6"):
                 continue
-            targets.append({"addr": t["addr"], "role": "device", "full": t["stable"], "label": t["mac"] or "?"})
+            if rmac and t["mac"] == rmac:
+                targets.append({"addr": t["addr"], "role": "router", "full": True, "label": "router IPv6 (LAN)"})
+            else:
+                targets.append({"addr": t["addr"], "role": "device", "full": t["stable"], "label": t["mac"] or "?"})
     extra = set(int(p) for p in ext["extra_tcp_ports"])
     ra = snap.get("remote_access", {})
     if ra.get("port"):
@@ -184,10 +188,19 @@ def parse_result(result: dict) -> dict:
     return {"hosts": hosts, "missing": missing, "errors": errors}
 
 
+def router_addresses(snap: dict, devices: dict) -> set[str]:
+    """Public addresses of the router itself: WAN IPv4/IPv6 plus its global LAN IPv6 (same MAC)."""
+    out = {a for a in (snap.get("ipv4"), snap.get("ipv6")) if a}
+    d = devices.get(snap.get("router_mac", "")) if snap.get("router_mac") else None
+    if d:
+        out |= set(d.get("ipv6", []))
+    return {str(ipaddress.ip_address(a)) for a in out}
+
+
 def attribute(snap: dict, devices: dict, addr: str, proto: str, port: int) -> tuple[str, dict]:
     """Explain why addr:port is reachable. Returns (text, facts)."""
     fam = ip_family(addr)
-    if fam == "v4" or addr == snap.get("ipv6"):
+    if fam == "v4" or addr in router_addresses(snap, devices):
         for m in snap.get("port_mappings", []):
             if m["protocol"].lower() == proto and int(m["external_port"]) == port:
                 who = label(devices, ip=m["internal_client"])
@@ -208,7 +221,8 @@ def attribute(snap: dict, devices: dict, addr: str, proto: str, port: int) -> tu
 
 def result_findings(result: dict, parsed: dict, snap: dict, devices: dict, cfg) -> list[Finding]:
     out: list[Finding] = []
-    router = {snap.get("ipv4"), snap.get("ipv6")} - {None, ""}
+    router = router_addresses(snap, devices) | {str(ipaddress.ip_address(t["addr"])) for t in result.get("targets", [])
+                                                if t.get("role") == "router"}
     for addr, ports in parsed["hosts"].items():
         fam = ip_family(addr)
         is_router = addr in router
@@ -244,16 +258,21 @@ def resolvable_for(result: dict, missing: list[str] | None = None):
     """Only findings whose address+port was actually covered by this result may be resolved by absence."""
     cov = [c for c in coverage(result) if c["addr"] not in set(missing or [])]
     current_addrs = {str(ipaddress.ip_address(t["addr"])) for t in result.get("targets", [])}
-    router_fams = {t["family"]: t["addr"] for t in result.get("targets", []) if t.get("role") == "router"}
+    router_fams: dict[str, set] = {}
+    for t in result.get("targets", []):
+        if t.get("role") == "router":
+            router_fams.setdefault(t["family"], set()).add(str(ipaddress.ip_address(t["addr"])))
 
     def ok(f: dict) -> bool:
         d = f.get("detail", {})
         addr, proto, port = d.get("addr") or "", d.get("proto", "tcp"), int(d.get("port") or 0)
         if d.get("router"):
-            addr = router_fams.get(d.get("family"), addr)  # router findings follow the current public address
+            addrs = router_fams.get(d.get("family"), {addr})  # router findings follow the current public addresses
         elif addr not in current_addrs:
             return True  # device address gone (rotated temporary IPv6) -> finding no longer applies
-        return any(c["addr"] == addr and _port_in_spec(c["spec"], proto, port) for c in cov)
+        else:
+            addrs = {addr}
+        return any(c["addr"] in addrs and _port_in_spec(c["spec"], proto, port) for c in cov)
     return ok
 
 

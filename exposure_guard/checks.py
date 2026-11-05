@@ -19,7 +19,9 @@ def router_findings(snap: dict, devices: dict, store) -> list[Finding]:
         how = "opened via UPnP by the device itself" if upnp else "manual port forwarding"
         msg = (f"Port {port}/{proto} is forwarded from the internet to {who}:{m['internal_port']} - {how}"
                f" (first seen {first}). Description: '{m['description'] or '-'}'"
-               + ("" if m["enabled"] else " (entry disabled)") + ".")
+               + ("" if m["enabled"] else " (entry disabled)") + "."
+               + (" Note: the line is DS-Lite, so this IPv4 forwarding is not reachable from the internet over IPv4 -"
+                  " but the device asked for exposure; check its IPv6 sharing too." if snap.get("dslite") else ""))
         action = ("Check whether the device really needs to be reachable from the internet. If not: delete the "
                   "forwarding in FRITZ!Box > Internet > Permit Access and untick 'Permit independent port sharing' "
                   "for this device. Prefer Tailscale for own access." if upnp else
@@ -87,6 +89,16 @@ def router_findings(snap: dict, devices: dict, store) -> list[Finding]:
                     "routers; you cannot switch it off on a provider-managed box.",
             action="No action; keep an eye on firmware updates rolled out by the provider.",
             state_key=[pm["url"]]))
+
+    if snap.get("dslite"):
+        out.append(Finding(
+            id="router:ds-lite", source="fritz", kind="config", severity="info",
+            title="Internet line uses DS-Lite (no own public IPv4)",
+            message="The router's WAN address is IPv6; IPv4 goes through the provider's shared carrier-grade NAT. "
+                    "Nothing in the LAN is reachable from the internet over IPv4 - exposure happens over IPv6 only "
+                    "(router remote access, IPv6 sharings). The shared IPv4 is never scanned.",
+            action="No action. Keep an eye on IPv6 sharings: they are the only way in.",
+            state_key=[True]))
 
     # ---- firmware ---------------------------------------------------------------------------
     if dev.get("firmware"):

@@ -193,9 +193,19 @@ def collect(cfg) -> dict:
     # public addresses
     wan = "WANIPConnection:1" if tr.has("WANIPConnection:1") else "WANPPPConnection:1"
     ext = safe(wan, "GetExternalIPAddress") or {}
-    snap["ipv4"] = ext.get("NewExternalIPAddress", "")
+    wan_info = safe(wan, "GetInfo") or {}
+    snap["router_mac"] = norm_mac(wan_info.get("NewMACAddress", ""))
     v6 = safe(wan, "X_AVM-DE_GetExternalIPv6Address") or {}
     snap["ipv6"] = v6.get("NewExternalIPv6Address", "")
+    external_addr = ext.get("NewExternalIPAddress", "")
+    snap["dslite"] = ":" in external_addr
+    if snap["dslite"]:
+        # DS-Lite (common on cable): the WAN address is IPv6; the public IPv4 is shared via the provider's
+        # AFTR (carrier-grade NAT) - not ours, never a scan target, and unreachable from the internet.
+        snap["ipv4"] = ""
+        snap["ipv6"] = snap["ipv6"] or external_addr
+    else:
+        snap["ipv4"] = external_addr
     pfx = safe(wan, "X_AVM-DE_GetIPv6Prefix") or {}
     snap["ipv6_prefix"] = (f"{pfx.get('NewIPv6Prefix')}/{pfx.get('NewPrefixLength')}"
                            if pfx.get("NewIPv6Prefix") else "")

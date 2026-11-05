@@ -86,3 +86,13 @@ def test_classify_mappings_dedup():
     b = {"protocol": "TCP", "external_port": 81, "internal_client": "1.2.3.4", "internal_port": 81}
     out = fritz.classify_mappings([a, b], [a])
     assert [(m["external_port"], m["origin"]) for m in out] == [(80, "upnp"), (81, "manual")]
+
+
+def test_ds_lite_detected(fb, tmp_path):
+    cfg, state = fb
+    state["ipv4"] = "2001:db8:8000:ff::1"   # WAN address reported by TR-064 on DS-Lite lines
+    state["ipv6"] = ""
+    snap = fritz.collect(cfg)
+    assert snap["dslite"] and snap["ipv4"] == "" and snap["ipv6"] == "2001:db8:8000:ff::1"
+    ids = {f.id for f in checks.router_findings(snap, {}, Store(str(tmp_path / "s.db")))}
+    assert "router:ds-lite" in ids

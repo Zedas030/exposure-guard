@@ -6,7 +6,8 @@ First release.
 
 - FRITZ!Box via TR-064 + UPnP IGD (read-only, enforced): port forwardings split into manual and UPnP with device and
   first-seen time, MyFRITZ! sharings, UPnP status, remote access, MyFRITZ! account, provider management, firmware,
-  public IPv4 / IPv6 / prefix with change detection.
+  public IPv4 / IPv6 / prefix with change detection. DS-Lite lines are detected: the shared provider IPv4 is
+  never scanned, the router's LAN IPv6 counts as router address, the prefix falls back to the LAN /64.
 - External probe for a small VPS: scans only guard-signed targets (public IPv4, router WAN IPv6, every global IPv6
   address seen in the LAN), top ports daily, all TCP ports weekly, UDP on the router, service/version detection, TLS;
   results sealed to the guard (libsodium sealed box) and signed (Ed25519); pulled over SSH with a forced command.

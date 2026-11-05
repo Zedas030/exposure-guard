@@ -119,6 +119,11 @@ class Guard:
             try:
                 snap = fritz.collect(self.cfg)
                 hosts_ok = "hosts_error" not in snap
+                if not snap.get("ipv6_prefix"):
+                    # many FRITZ!OS versions do not offer X_AVM-DE_GetIPv6Prefix: use the LAN /64 we live in
+                    own = inventory.own_global_v6(self.cfg["network"]["interface"])
+                    if own:
+                        snap["ipv6_prefix"] = str(ipaddress.ip_interface(own[0] + "/64").network)
                 self._check_ip_change(snap)
                 self.store.set("fritz:last", {k: v for k, v in snap.items() if k != "hosts"} | {"at": iso()})
                 devices_prev = self.devices()
@@ -358,6 +363,7 @@ class Guard:
             "broken_sources": broken, "external_stale": stale_why,
             "external_last_scan": last_ext.get("finished", ""), "external_last_profile": last_ext.get("profile", ""),
             "public_ipv4": pub.get("ipv4", ""), "public_ipv6_prefix": pub.get("ipv6_prefix", ""),
+            "ds_lite": bool((self.store.get("fritz:last") or {}).get("dslite")),
             "health": health, "url": self.cfg["general"]["public_url"],
         }
 

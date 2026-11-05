@@ -44,7 +44,8 @@ def cmd_status(args) -> int:
     sev = st["open_by_severity"]
     print(f"Open: critical {sev['critical']}, high {sev['high']}, medium {sev['medium']}, low {sev['low']}, info {sev['info']}"
           f" | baseline to review {st['baseline']} | acknowledged {st['acknowledged']}")
-    print(f"Public: IPv4 {st['public_ipv4'] or '-'}  IPv6 prefix {st['public_ipv6_prefix'] or '-'}")
+    v4 = "none (DS-Lite, shared provider NAT)" if st.get("ds_lite") else (st["public_ipv4"] or "-")
+    print(f"Public: IPv4 {v4}  IPv6 prefix {st['public_ipv6_prefix'] or '-'}")
     print(f"External: last complete scan {st['external_last_scan'] or 'never'} {st['external_last_profile']}"
           + (f"  !! {st['external_stale']}" if st["external_stale"] else ""))
     print("Checks:")
