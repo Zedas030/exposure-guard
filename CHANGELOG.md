@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.0.1 - 2026-11-05
+
+Fixes found during acceptance against a real network.
+
+- A newly appearing forwarded or remote-access port now makes the guard push fresh targets to the probe and request an
+  immediate external scan (`external.scan_on_new_forwarding`, default on, probe limit 1 scan/h). Before, the port was
+  only checked from outside at the next scheduled run.
+- `exposure-guard scan-now` sends the current target list before asking for the scan.
+- Probe 1.0.1: full service/version detection for TCP; UDP without version probes (failed over IPv6 with
+  "administratively prohibited" replies and made the whole run incomplete).
+- Probe installer: keeps provider iptables rules (Oracle Cloud images) and adds an IPv6 rule set (SSH + ICMPv6 only);
+  disables rpcbind. SSH to an IPv6 probe address works without brackets.
+
 ## 1.0.0 - 2026-11-05
 
 First release.

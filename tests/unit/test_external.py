@@ -109,3 +109,10 @@ def test_ssh_command_ipv6_without_brackets(monkeypatch):
     except external.ProbeError:
         pass
     assert "probe@2001:db8::5" in calls[0]
+
+
+def test_new_ports_detects_added_forwarding():
+    before = {"extra_tcp_ports": [47743]}
+    assert external.new_ports(before, {"extra_tcp_ports": [18443, 47743]}) == [18443]
+    assert external.new_ports(before, {"extra_tcp_ports": [47743]}) == []
+    assert external.new_ports({"extra_tcp_ports": [18443, 47743]}, {"extra_tcp_ports": [47743]}) == []

@@ -8,7 +8,8 @@ German documentation: [README.de.md](README.de.md)
 - Reads the FRITZ!Box via TR-064 and UPnP IGD (read-only): every port forwarding, **manual vs. UPnP**, with device and
   first-seen time; UPnP status, remote access, MyFRITZ!, provider management, firmware.
 - An **external probe** on a small VPS scans your own public IPv4 and every global IPv6 address in your LAN from the
-  internet (top ports daily, all TCP ports weekly, service/version detection, TLS) and returns results
+  internet (top ports daily, all TCP ports weekly, service/version detection, TLS; a newly forwarded port triggers an
+  immediate scan, so it is verified from outside within minutes) and returns results
   **sealed and signed** (libsodium). The guard pulls them over SSH - no inbound port at home, the probe never enters
   the LAN or the tailnet.
 - Detects **public IPv4 and IPv6 prefix changes** (router view cross-checked with what the probe sees).
@@ -151,7 +152,7 @@ exposure-guard findings [--all] [-v] [--severity medium]
 exposure-guard ack <id> "reason" [--until YYYY-MM-DD] | unack <id> | acks
 exposure-guard run local|external|lan-web|tailscale|all
 exposure-guard report initial|weekly [--notify]
-exposure-guard scan-now               ask the probe for an immediate daily scan (max. once per hour)
+exposure-guard scan-now               send the current targets and ask the probe for an immediate daily scan (max. once per hour)
 exposure-guard keys | test-notify
 ```
 

@@ -135,9 +135,15 @@ def cmd_keys(args) -> int:
 
 
 def cmd_scan_now(args) -> int:
-    from .external import ProbeClient
+    from .external import ProbeClient, build_targets, push_targets_if_needed
     g = _guard(args)
-    print(json.dumps(ProbeClient(g.cfg, g.keys).scan_now()))
+    client = ProbeClient(g.cfg, g.keys)
+    # make sure the probe scans the current targets/ports (e.g. a forwarding added minutes ago)
+    from .guard import _norm
+    doc = build_targets(g.cfg, g.store, None)
+    doc["targets"] = [dict(t, addr=_norm(t["addr"])) for t in doc["targets"]]
+    push_targets_if_needed(client, g.store, doc)
+    print(json.dumps(client.scan_now()))
     return 0
 
 

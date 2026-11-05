@@ -109,6 +109,11 @@ def build_targets(cfg, store, fritz_snap: dict | None) -> dict:
             "full_weekday": "sat"}
 
 
+def new_ports(before: dict, doc: dict) -> list[int]:
+    """Extra TCP ports (forwardings, remote access) in doc that the previous target list did not have."""
+    return sorted(set(doc.get("extra_tcp_ports", [])) - set(before.get("extra_tcp_ports", [])))
+
+
 def push_targets_if_needed(client: ProbeClient, store, doc: dict, force: bool = False) -> bool:
     digest = short_hash(doc)
     last = store.get("external:targets") or {}

@@ -126,6 +126,10 @@ class Guard:
                         snap["ipv6_prefix"] = str(ipaddress.ip_interface(own[0] + "/64").network)
                 self._check_ip_change(snap)
                 self.store.set("fritz:last", {k: v for k, v in snap.items() if k != "hosts"} | {"at": iso()})
+                if self.cfg["external"]["enabled"] and self.cfg["external"]["scan_on_new_forwarding"]:
+                    pushed = (self.store.get("external:targets") or {}).get("doc") or {}
+                    if pushed and external.new_ports(pushed, external.build_targets(self.cfg, self.store, snap)):
+                        self.store.set("external:refresh", True)   # next tick: push targets + scan from outside
                 devices_prev = self.devices()
                 alerts = self.engine.apply("fritz", checks.router_findings(snap, devices_prev, self.store))
                 self._send_alerts(alerts)
@@ -197,11 +201,17 @@ class Guard:
             doc = external.build_targets(self.cfg, self.store, None)
             doc["targets"] = [dict(t, addr=_norm(t["addr"])) for t in doc["targets"]]
             force = bool(self.store.get("external:force_push"))
+            before = (self.store.get("external:targets") or {}).get("doc") or {}
             pushed = external.push_targets_if_needed(client, self.store, doc, force=force)
             if force and pushed:
                 self.store.set("external:force_push", False)
                 if ext["scan_on_ip_change"]:
                     client.scan_now()
+            self.store.set("external:refresh", False)
+            if not (force and pushed) and pushed and ext["scan_on_new_forwarding"] and external.new_ports(before, doc):
+                # a new forwarding / remote-access port: verify it from outside now, not at the next 05:00 run
+                res = client.scan_now()
+                log.info("new forwarded port(s) %s - immediate external scan: %s", external.new_ports(before, doc), res)
             for run_id, result in client.results_after(self.store.get("external:last_run_id", "")):
                 self._process_result(run_id, result)
             ext6 = ext.get("probe_host_v6")
@@ -433,7 +443,8 @@ class Guard:
                 self.job_tailscale()
                 ran = True
             if self.cfg["external"]["enabled"] and (self._every_due("external", self.cfg["external"]["fetch_minutes"])
-                                                    or self.store.get("external:force_push")):
+                                                    or self.store.get("external:force_push")
+                                                    or self.store.get("external:refresh")):
                 self._mark("external")
                 self.job_external()
                 ran = True

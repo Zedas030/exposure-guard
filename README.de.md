@@ -10,7 +10,7 @@ English version: [README.md](README.md)
 | Bereich | Prüfung | Häufigkeit |
 |---|---|---|
 | FRITZ!Box (TR-064 + UPnP-IGD, nur lesend) | alle IPv4-Portfreigaben, **getrennt nach manuell und UPnP**, mit Gerät (IP, Hostname, Hersteller, MAC) und Zeitpunkt des ersten Auftretens; MyFRITZ!-Freigaben; UPnP-Status; Fernzugang (HTTPS-Port, Let's Encrypt); MyFRITZ!-Konto; Provider-Fernwartung (TR-069); Firmware-Stand und verfügbare Updates; öffentliche IPv4, WAN-IPv6 und IPv6-Präfix | alle 10 min |
-| Externe Sicht (Prüfstation auf einem VPS) | Portscan gegen die eigene öffentliche IPv4 und **jede globale IPv6-Adresse im LAN**: die 1000 häufigsten TCP-Ports + alle weitergeleiteten Ports + Fernzugangsport täglich, **alle 65 535 TCP-Ports samstags** (Router und Geräte mit stabiler IPv6-Adresse), wichtige UDP-Ports (IPsec, WireGuard, OpenVPN, STUN, SIP) am Router; Dienst- und Versionserkennung; TLS (`ssl-cert`, `ssl-enum-ciphers`) | täglich 05:00 |
+| Externe Sicht (Prüfstation auf einem VPS) | Portscan gegen die eigene öffentliche IPv4 und **jede globale IPv6-Adresse im LAN**: die 1000 häufigsten TCP-Ports + alle weitergeleiteten Ports + Fernzugangsport täglich, **alle 65 535 TCP-Ports samstags** (Router und Geräte mit stabiler IPv6-Adresse), wichtige UDP-Ports (IPsec, WireGuard, OpenVPN, STUN, SIP) am Router; Dienst- und Versionserkennung; TLS (`ssl-cert`, `ssl-enum-ciphers`) | täglich 05:00, bei einer neuen Weiterleitung sofort (höchstens 1x pro Stunde) |
 | IP-Wechsel | Wechsel von IPv4 und IPv6-Präfix; Gegenprüfung: Die Prüfstation meldet, mit welcher Absenderadresse der Pi ankommt | alle 10 / 30 min |
 | LAN-Inventar (passiv) | neue, unbekannte Geräte aus der Geräteliste der FRITZ!Box, ARP- und NDP-Tabelle; MAC, Hersteller (IEEE-Liste, offline), Hostname, zufällige MAC | alle 10 min |
 | Weboberflächen im LAN (schonend) | Anmeldeseiten über HTTP ohne TLS; Produkte mit bekannten Standard-Logins oder ohne Anmeldung – **nur Erkennung über Startseite und Hersteller, keine Anmeldeversuche**; Zertifikate (Ablauf, Selbstsignierung, alte Protokolle, schwache Schlüssel) | wöchentlich So 04:30 |
@@ -164,7 +164,7 @@ exposure-guard findings [--all] [-v] [--severity medium]
 exposure-guard ack <id> "Begründung" [--until JJJJ-MM-TT] | unack <id> | acks
 exposure-guard run local|external|lan-web|tailscale|all
 exposure-guard report initial|weekly [--notify]
-exposure-guard scan-now                 sofortiger Tagesscan der Prüfstation (höchstens 1x pro Stunde)
+exposure-guard scan-now                 aktuelle Ziele senden und sofortigen Tagesscan anstoßen (höchstens 1x pro Stunde)
 exposure-guard keys | test-notify
 ```
 

@@ -42,6 +42,7 @@ external:
   stale_hours: 26                      # older than this = external view UNKNOWN (never "all clear")
   unreachable_after: 3                 # failed contacts in a row before a warning (3 x 30 min)
   scan_on_ip_change: true              # ask the probe for an immediate scan after an IP/prefix change
+  scan_on_new_forwarding: true         # ... and when a new forwarded/remote-access port appears (max. 1 scan/h)
   ip_crosscheck: true                  # compare the router's public IP with the source address the probe sees
   extra_tcp_ports: []                  # scanned daily in addition to the top-1000 ports (router remote-access
                                        # port and all forwarded ports are added automatically)

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "exposure-guard"
-version = "1.0.0"
+version = "1.0.1"
 description = "Watches what your home network exposes to the internet: UPnP port forwards, external scans via a VPS probe, IPv6 reachability, LAN drift, TLS, Tailscale."
 readme = "README.md"
 license = { text = "MIT" }

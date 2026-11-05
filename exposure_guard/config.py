@@ -50,6 +50,7 @@ DEFAULTS: dict = {
         "unreachable_after": 3,
         "connect_timeout": 20,
         "scan_on_ip_change": True,
+        "scan_on_new_forwarding": True,
         "ip_crosscheck": True,
         "extra_tcp_ports": [],
         "udp_ports": [500, 4500, 51820, 1194, 3478, 5060],
