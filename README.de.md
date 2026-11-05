@@ -37,6 +37,13 @@ mit Schwerpunkt auf Portfreigaben, die Geräte per UPnP still selbst öffnen.
 
 ## Aufbau
 
+<p align="center">
+  <img src="docs/how-it-works.de.svg" width="780" alt="So funktioniert der Exposure-Wächter: neun Schritte vom Router bis zur Meldung">
+</p>
+
+<details>
+<summary><b>Technische Ansicht (Komponenten und Verbindungen)</b></summary>
+
 ```mermaid
 flowchart TB
     subgraph CLOUD["☁️ Internet"]
@@ -66,6 +73,8 @@ flowchart TB
     GUARD --> PROM
     GUARD --> WEB
 ```
+
+</details>
 
 - Zu Hause wird **kein Port geöffnet**; die Prüfstation kommt nie ins LAN und nie ins Tailnet. Ihr SSH-Schlüssel darf
   nur ein festes Gate ausführen (`health`, `put-targets`, `get-results`, `scan-now`).

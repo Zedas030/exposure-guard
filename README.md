@@ -41,6 +41,13 @@ dashboard and an initial + weekly report with an assessment and a concrete actio
 
 ## How it works
 
+<p align="center">
+  <img src="docs/how-it-works.svg" width="780" alt="How Exposure Guard works: nine steps from reading the router to the alert">
+</p>
+
+<details>
+<summary><b>Technical view (components and connections)</b></summary>
+
 ```mermaid
 flowchart TB
     subgraph CLOUD["☁️ Internet"]
@@ -70,6 +77,8 @@ flowchart TB
     GUARD --> PROM
     GUARD --> WEB
 ```
+
+</details>
 
 - **No inbound port at home.** The guard connects out to the probe over SSH; the probe's key may only run a fixed gate
   (`health`, `put-targets`, `get-results`, `scan-now`).
