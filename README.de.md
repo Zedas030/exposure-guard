@@ -78,7 +78,7 @@ flowchart TB
 | Schweregrad | Beispiele | Zustellung |
 |---|---|---|
 | 🔴 **kritisch** | neuer von außen offener Port, neue UPnP- oder manuelle Freigabe, IPv6-Gerät direkt erreichbar, unbekanntes Gerät im LAN oder Tailnet | **sofort** als Push |
-| 🟠 **hoch** · 🟡 **mittel** · 🔵 **niedrig** · ⚪ **info** | UPnP an, Fernzugang, TLS-Mängel, Login über HTTP, Standard-Login-Produkte, Key-Ablauf, ACL „alles erlaubt“, Firmware | Wochenbericht (So 18:00) mit Bewertung und konkreter Maßnahme |
+| 🟠 **hoch · mittel · niedrig · info** | UPnP an, Fernzugang, TLS-Mängel, Login über HTTP, Standard-Login-Produkte, Key-Ablauf, ACL „alles erlaubt“, Firmware | Wochenbericht (So 18:00) mit Bewertung und konkreter Maßnahme |
 | 🩺 **Selbstüberwachung** | Prüfung schlägt fehl, Prüfstation nicht erreichbar, externe Sicht älter als 26 h, IP passt nicht | **sofort**, plus Entwarnung |
 
 Beispiel einer Sofortmeldung:

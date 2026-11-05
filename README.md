@@ -83,7 +83,7 @@ flowchart TB
 | Severity | Examples | Delivery |
 |---|---|---|
 | 🔴 **critical** | new port reachable from the internet, new UPnP/manual forwarding, IPv6 device directly reachable, unknown LAN or tailnet device | **immediately** (push) |
-| 🟠 **high** · 🟡 **medium** · 🔵 **low** · ⚪ **info** | UPnP enabled, remote access, TLS problems, plain-HTTP logins, default-login products, key expiry, ACL allow-all, firmware | weekly report with assessment + action |
+| 🟠 **high · medium · low · info** | UPnP enabled, remote access, TLS problems, plain-HTTP logins, default-login products, key expiry, ACL allow-all, firmware | weekly report with assessment + action |
 | 🩺 **health** | a check fails, probe unreachable, external view older than `stale_hours`, IP mismatch | **immediately**, plus recovery message |
 
 > [!NOTE]
