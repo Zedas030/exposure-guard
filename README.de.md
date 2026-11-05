@@ -1,9 +1,24 @@
-# Exposure-Wächter (Exposure Guard)
+<div align="center">
+
+# 🛡️ Exposure-Wächter (Exposure Guard)
+
+**Wissen, was das Heimnetz ins Internet freigibt, bevor es jemand anderes herausfindet.**
 
 Überwacht laufend, **was das Heimnetz ins Internet freigibt** und **was sich im LAN sicherheitsrelevant ändert** –
 mit Schwerpunkt auf Portfreigaben, die Geräte per UPnP still selbst öffnen.
 
-English version: [README.md](README.md)
+[![Lizenz: MIT](https://img.shields.io/badge/Lizenz-MIT-blue.svg)](LICENSE)
+![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-3776AB?logo=python&logoColor=white)
+![Docker](https://img.shields.io/badge/l%C3%A4uft%20in-Docker-2496ED?logo=docker&logoColor=white)
+![Home Assistant](https://img.shields.io/badge/Meldungen-Home%20Assistant-41BDF5?logo=homeassistant&logoColor=white)
+![Nur lesend](https://img.shields.io/badge/Router--Zugriff-nur%20lesend-success)
+
+[Aufbau](#aufbau) · [Meldungen](#schweregrade-und-meldungen) · [Installation](#installation) ·
+[Secrets](#secrets-zugangsdaten) · [Befehle](#befehle) · [English](README.md)
+
+</div>
+
+---
 
 ## Was er prüft
 
@@ -16,28 +31,44 @@ English version: [README.md](README.md)
 | Weboberflächen im LAN (schonend) | Anmeldeseiten über HTTP ohne TLS; Produkte mit bekannten Standard-Logins oder ohne Anmeldung – **nur Erkennung über Startseite und Hersteller, keine Anmeldeversuche**; Zertifikate (Ablauf, Selbstsignierung, alte Protokolle, schwache Schlüssel) | wöchentlich So 04:30 |
 | Tailscale | Geräte im Tailnet, abgelaufene/bald ablaufende Keys, abgeschaltetes Key-Ablaufdatum, Exit-Nodes, Subnet-Routen; per API: ACL „alles erlaubt“, Funnel, Tailscale-SSH als root ohne Nachprüfung, Auto-Approver, Client-Updates, geteilte Fremdgeräte | stündlich |
 
-Das Tool **ändert nichts** an FRITZ!Box, Firewall oder Geräten. Es meldet und schlägt Maßnahmen vor. Im Code ist
-erzwungen, dass an die FRITZ!Box nur `Get*`-Aktionen gehen.
+> [!IMPORTANT]
+> Das Tool **ändert nichts** an FRITZ!Box, Firewall oder Geräten. Es meldet und schlägt Maßnahmen vor. Im Code ist
+> erzwungen, dass an die FRITZ!Box nur `Get*`-Aktionen gehen.
 
 ## Aufbau
 
-```
-                    Internet
-  +------------------+        scannt nur signierte Ziele
-  | VPS: exposure-   | ---------------------------------> öffentliche IPv4 / IPv6 des Heimnetzes
-  | probe (nmap)     |
-  +------------------+
-         ^  SSH, von zu Hause ausgehend; erzwungener Befehl (health | put-targets | get-results | scan-now)
-         |  Ergebnisse: für den Wächter verschlüsselt (Sealed Box) und von der Prüfstation signiert (Ed25519)
-  +------+-----------------------------------------------+
-  | Pi (Docker): exposure-guard                           |
-  |  FRITZ!Box, Inventar, LAN-Webcheck, Tailscale          |
-  |  -> Befunde, Baseline, Quittierungen                   |
-  |  -> HA-Push + Sensoren, /metrics, Web :8103, Berichte |
-  +--------------------------------------------------------+
+```mermaid
+flowchart TB
+    subgraph CLOUD["☁️ Internet"]
+        PROBE["<b>exposure-probe</b><br/>kleiner VPS · nmap<br/>scannt nur signierte Ziele"]
+    end
+
+    subgraph HOME["🏠 Heimnetz"]
+        GUARD["<b>exposure-guard</b><br/>Docker auf dem Heimserver<br/>Befunde · Baseline · Quittierungen"]
+        ROUTER["📡 FRITZ!Box"]
+        LAN["💻 Geräte im LAN"]
+        TS["🔐 Tailscale"]
+    end
+
+    subgraph OUT["📣 Ausgaben"]
+        HA["Home Assistant<br/>Push + Sensoren"]
+        PROM["Prometheus / Grafana<br/>/metrics"]
+        WEB["Weboberfläche :8103<br/>+ Berichte"]
+    end
+
+    PROBE == "scannt öffentliche IPv4 / IPv6" ==> ROUTER
+    GUARD -- "SSH, von zu Hause ausgehend<br/>erzwungener Befehl" --> PROBE
+    PROBE -. "Ergebnisse: verschlüsselt für den Wächter,<br/>signiert von der Prüfstation" .-> GUARD
+    GUARD -- "TR-064 + UPnP-IGD<br/>nur lesend, alle 10 min" --> ROUTER
+    GUARD -- "Geräteliste, ARP/NDP<br/>wöchentlicher schonender Web-/TLS-Check" --> LAN
+    GUARD -- "LocalAPI + API<br/>nur lesend" --> TS
+    GUARD --> HA
+    GUARD --> PROM
+    GUARD --> WEB
 ```
 
-- Zu Hause wird **kein Port geöffnet**; die Prüfstation kommt nie ins LAN und nie ins Tailnet.
+- Zu Hause wird **kein Port geöffnet**; die Prüfstation kommt nie ins LAN und nie ins Tailnet. Ihr SSH-Schlüssel darf
+  nur ein festes Gate ausführen (`health`, `put-targets`, `get-results`, `scan-now`).
 - Die Prüfstation scannt nur Zielslisten, die der Wächter signiert hat, und lehnt nicht-globale Adressen ab.
 - Ergebnisse liegen auf dem VPS nur verschlüsselt; nur der Wächter kann sie öffnen, und er nimmt nur Ergebnisse an,
   die mit dem fest hinterlegten Schlüssel der Prüfstation signiert sind.
@@ -46,9 +77,9 @@ erzwungen, dass an die FRITZ!Box nur `Get*`-Aktionen gehen.
 
 | Schweregrad | Beispiele | Zustellung |
 |---|---|---|
-| kritisch | neuer von außen offener Port, neue UPnP- oder manuelle Freigabe, IPv6-Gerät direkt erreichbar, unbekanntes Gerät im LAN oder Tailnet | **sofort** als Push |
-| hoch / mittel / niedrig / info | UPnP an, Fernzugang, TLS-Mängel, Login über HTTP, Standard-Login-Produkte, Key-Ablauf, ACL „alles erlaubt“, Firmware | Wochenbericht (So 18:00) mit Bewertung und konkreter Maßnahme |
-| Selbstüberwachung | Prüfung schlägt fehl, Prüfstation nicht erreichbar, externe Sicht älter als 26 h, IP passt nicht | **sofort**, plus Entwarnung |
+| 🔴 **kritisch** | neuer von außen offener Port, neue UPnP- oder manuelle Freigabe, IPv6-Gerät direkt erreichbar, unbekanntes Gerät im LAN oder Tailnet | **sofort** als Push |
+| 🟠 **hoch** · 🟡 **mittel** · 🔵 **niedrig** · ⚪ **info** | UPnP an, Fernzugang, TLS-Mängel, Login über HTTP, Standard-Login-Produkte, Key-Ablauf, ACL „alles erlaubt“, Firmware | Wochenbericht (So 18:00) mit Bewertung und konkreter Maßnahme |
+| 🩺 **Selbstüberwachung** | Prüfung schlägt fehl, Prüfstation nicht erreichbar, externe Sicht älter als 26 h, IP passt nicht | **sofort**, plus Entwarnung |
 
 Beispiel einer Sofortmeldung:
 `Reachable from the internet: 32400/tcp on router v4 (http)` – „The external probe reached public IPv4 … port 32400/tcp:

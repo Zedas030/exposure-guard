@@ -1,58 +1,94 @@
-# Exposure Guard
+<div align="center">
 
-Continuously watches **what your home network exposes to the internet** and **what changes in the LAN that matters
-for security** - with a focus on port forwardings that devices silently open themselves via UPnP.
+# 🛡️ Exposure Guard
 
-German documentation: [README.de.md](README.de.md)
+**Know what your home network exposes to the internet, before someone else does.**
 
-- Reads the FRITZ!Box via TR-064 and UPnP IGD (read-only): every port forwarding, **manual vs. UPnP**, with device and
-  first-seen time; UPnP status, remote access, MyFRITZ!, provider management, firmware.
-- An **external probe** on a small VPS scans your own public IPv4 and every global IPv6 address in your LAN from the
-  internet (top ports daily, all TCP ports weekly, service/version detection, TLS; a newly forwarded port triggers an
-  immediate scan, so it is verified from outside within minutes) and returns results
-  **sealed and signed** (libsodium). The guard pulls them over SSH - no inbound port at home, the probe never enters
-  the LAN or the tailnet.
-- Detects **public IPv4 and IPv6 prefix changes** (router view cross-checked with what the probe sees).
-- LAN inventory (passive): new unknown devices with MAC, vendor, hostname. Weekly, gentle check of web interfaces:
-  plain-HTTP logins, products with known default logins or no authentication (start page only - **never a login attempt**),
-  TLS certificates.
-- Tailscale: nodes, key expiry, exit nodes, subnet routes; ACL/policy check with a read-only OAuth client.
-- Alerts through a Home Assistant notify service, status sensors in Home Assistant, Prometheus metrics, Grafana dashboard,
-  initial + weekly report with assessment and concrete action per finding.
-- **Self-monitoring:** a failed check or an unreachable/stale probe is reported - a missing scan never looks like "all clear".
-- **It never changes anything** on the router, firewall or devices. It reports and recommends.
+Watches port forwardings (especially the ones devices open themselves via UPnP), scans your own public IPv4/IPv6
+from outside and reports security-relevant changes in the LAN and tailnet.
+
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-3776AB?logo=python&logoColor=white)
+![Docker](https://img.shields.io/badge/runs%20in-Docker-2496ED?logo=docker&logoColor=white)
+![Home Assistant](https://img.shields.io/badge/alerts-Home%20Assistant-41BDF5?logo=homeassistant&logoColor=white)
+![Read-only](https://img.shields.io/badge/router%20access-read--only-success)
+
+[How it works](#how-it-works) · [Alerts](#severities-and-alerts) · [Install](#installation) ·
+[Secrets](#secrets) · [Commands](#commands) · [Deutsch](README.de.md)
+
+</div>
+
+---
+
+## What it watches
+
+| | Area | What is checked |
+|---|---|---|
+| 📡 | **FRITZ!Box** (TR-064 + UPnP IGD, read-only) | every port forwarding, **manual vs. UPnP**, with device and first-seen time; UPnP status, remote access, MyFRITZ!, provider management, firmware |
+| 🌍 | **External view** (probe on a small VPS) | your public IPv4 and every global IPv6 address in the LAN, scanned from the internet: top ports daily, all TCP ports weekly, service/version detection, TLS. A newly forwarded port triggers an immediate scan, so it is verified from outside within minutes. Results come back **sealed and signed** (libsodium) |
+| 🔁 | **IP changes** | public IPv4 and IPv6 prefix, router view cross-checked with what the probe sees |
+| 🏠 | **LAN inventory** (passive) | new unknown devices with MAC, vendor, hostname |
+| 🔍 | **LAN web check** (weekly, gentle) | plain-HTTP logins, products with known default logins or no authentication (start page only, **never a login attempt**), TLS certificates |
+| 🔐 | **Tailscale** | nodes, key expiry, exit nodes, subnet routes; ACL/policy check with a read-only OAuth client |
+| 🩺 | **Itself** | a failed check or an unreachable/stale probe is reported: a missing scan never looks like "all clear" |
+
+Alerts go to a Home Assistant notify service, plus status sensors in Home Assistant, Prometheus metrics, a Grafana
+dashboard and an initial + weekly report with an assessment and a concrete action per finding.
+
+> [!IMPORTANT]
+> **It never changes anything** on the router, firewall or devices. It reports and recommends.
+> Router access is limited to `Get*` actions, enforced in code.
 
 ## How it works
 
+```mermaid
+flowchart TB
+    subgraph CLOUD["☁️ Internet"]
+        PROBE["<b>exposure-probe</b><br/>small VPS · nmap<br/>scans signed targets only"]
+    end
+
+    subgraph HOME["🏠 Home network"]
+        GUARD["<b>exposure-guard</b><br/>Docker on a home host<br/>findings · baseline · acks"]
+        ROUTER["📡 FRITZ!Box"]
+        LAN["💻 LAN devices"]
+        TS["🔐 Tailscale"]
+    end
+
+    subgraph OUT["📣 Outputs"]
+        HA["Home Assistant<br/>push + sensors"]
+        PROM["Prometheus / Grafana<br/>/metrics"]
+        WEB["Web UI :8103<br/>+ reports"]
+    end
+
+    PROBE == "scans public IPv4 / IPv6" ==> ROUTER
+    GUARD -- "SSH, outbound from home<br/>forced command" --> PROBE
+    PROBE -. "results: sealed to the guard's key,<br/>signed by the probe" .-> GUARD
+    GUARD -- "TR-064 + UPnP IGD<br/>read-only, every 10 min" --> ROUTER
+    GUARD -- "host list, ARP/NDP<br/>weekly gentle web/TLS check" --> LAN
+    GUARD -- "LocalAPI + API<br/>read-only" --> TS
+    GUARD --> HA
+    GUARD --> PROM
+    GUARD --> WEB
 ```
-                     internet
-   +------------------+         scans (only signed targets)
-   |  VPS: exposure-  | -------------------------------------> public IPv4 / IPv6 of the home network
-   |  probe (nmap)    |
-   +------------------+
-          ^  SSH, outbound from home, forced command (health | put-targets | get-results | scan-now)
-          |  results: sealed to the guard's key + signed by the probe
-   +------+-----------------------------------------------+
-   | home host (Docker): exposure-guard                    |
-   |  - FRITZ!Box TR-064 + UPnP IGD (read-only, 10 min)    |
-   |  - inventory: router host list, ARP/NDP, 1 ICMPv6 echo|
-   |  - weekly gentle LAN web/TLS check                    |
-   |  - Tailscale LocalAPI + API (read-only)               |
-   |  -> findings, baseline, acks -> HA notify + sensors,  |
-   |     /metrics, web UI :8103, reports                   |
-   +--------------------------------------------------------+
-```
+
+- **No inbound port at home.** The guard connects out to the probe over SSH; the probe's key may only run a fixed gate
+  (`health`, `put-targets`, `get-results`, `scan-now`).
+- **The probe never enters the LAN or the tailnet.** It only scans target lists signed by the guard and refuses any
+  non-global address.
+- **Results are useless on the VPS.** They are encrypted to the guard's key and only accepted when signed with the
+  probe's pinned key.
 
 ## Severities and alerts
 
 | Severity | Examples | Delivery |
 |---|---|---|
-| critical | new port reachable from the internet, new UPnP/manual forwarding, IPv6 device directly reachable, unknown LAN or tailnet device | **immediately** (push) |
-| high / medium / low / info | UPnP enabled, remote access, TLS problems, plain-HTTP logins, default-login products, key expiry, ACL allow-all, firmware | weekly report with assessment + action |
-| health | a check fails, probe unreachable, external view older than `stale_hours`, IP mismatch | **immediately**, plus recovery message |
+| 🔴 **critical** | new port reachable from the internet, new UPnP/manual forwarding, IPv6 device directly reachable, unknown LAN or tailnet device | **immediately** (push) |
+| 🟠 **high** · 🟡 **medium** · 🔵 **low** · ⚪ **info** | UPnP enabled, remote access, TLS problems, plain-HTTP logins, default-login products, key expiry, ACL allow-all, firmware | weekly report with assessment + action |
+| 🩺 **health** | a check fails, probe unreachable, external view older than `stale_hours`, IP mismatch | **immediately**, plus recovery message |
 
-On the first run everything found becomes the **baseline** (no alerts, listed in the initial report for review).
-Afterwards only changes alert. An alert repeats only when the finding changes again.
+> [!NOTE]
+> On the first run everything found becomes the **baseline** (no alerts, listed in the initial report for review).
+> Afterwards only changes alert. An alert repeats only when the finding changes again.
 
 ### Acknowledging
 
@@ -120,8 +156,10 @@ Dashboard: `grafana/exposure-guard.json` (uid `exposure-guard`).
 
 ## Secrets
 
-All secrets live in **`/opt/exposure-guard/.env`** (mode 600, owned by root, read only by Docker Compose).
-`config.yaml` only contains the *names* of the variables. Template: [.env.example](.env.example).
+> [!TIP]
+> All secrets live in **`/opt/exposure-guard/.env`** (mode 600, owned by root, read only by Docker Compose).
+> `config.yaml` only contains the *names* of the variables. Template: [.env.example](.env.example).
+
 Enter or rotate them with `sudo nano /opt/exposure-guard/.env` or interactively (hidden input) with
 `sudo /opt/exposure-guard/scripts/set-secrets.sh`; afterwards `docker compose up -d --force-recreate`.
 
@@ -131,13 +169,16 @@ Enter or rotate them with `sudo nano /opt/exposure-guard/.env` or interactively 
 | `HA_TOKEN` | Home Assistant long-lived access token | HA profile > Security > Long-lived access tokens. Rotate: create a new one, update `.env`, recreate, delete the old one. |
 | `TS_OAUTH_CLIENT_ID`, `TS_OAUTH_CLIENT_SECRET` | Tailscale OAuth client (optional) | Admin console > Settings > OAuth clients, scopes **`policy_file:read` and `devices:core:read`** (read only). Rotate: create a new client, update `.env`, revoke the old one. |
 
-Key material created by the tool (no manual handling needed):
+<details>
+<summary><b>Key material created by the tool</b> (no manual handling needed)</summary>
 
 | File | Purpose | Rotation |
 |---|---|---|
 | `data/ssh/id_ed25519` | SSH key of the guard for the probe | delete it, re-run `install.sh`, put the new public key into the probe's `install-probe.sh` call |
 | `data/keys/guard_sign.key`, `guard_box.key` | signs target lists / decrypts results | delete both, restart the container, re-run `install-probe.sh` with the new `exposure-guard keys` values |
 | probe: `/etc/exposure-probe/probe_sign.key` | signs results | delete it, re-run `install-probe.sh`, update `external.probe_verify_key` |
+
+</details>
 
 ## Configuration
 
@@ -146,24 +187,24 @@ address, probe host, scan rates, LAN web check weekday/time and exclusions, Tail
 
 ## Commands
 
-```
-exposure-guard status [--json]       overall state + health of every check
-exposure-guard findings [--all] [-v] [--severity medium]
-exposure-guard ack <id> "reason" [--until YYYY-MM-DD] | unack <id> | acks
-exposure-guard run local|external|lan-web|tailscale|all
-exposure-guard report initial|weekly [--notify]
-exposure-guard scan-now               send the current targets and ask the probe for an immediate daily scan (max. once per hour)
-exposure-guard keys | test-notify
-```
+| Command | What it does |
+|---|---|
+| `exposure-guard status [--json]` | overall state + health of every check |
+| `exposure-guard findings [--all] [-v] [--severity medium]` | list findings |
+| `exposure-guard ack <id> "reason" [--until YYYY-MM-DD]` | acknowledge a finding (`unack <id>`, `acks` to list) |
+| `exposure-guard run local\|external\|lan-web\|tailscale\|all` | run checks now |
+| `exposure-guard report initial\|weekly [--notify]` | build a report |
+| `exposure-guard scan-now` | send the current targets and ask the probe for an immediate daily scan (max. once per hour) |
+| `exposure-guard keys` · `test-notify` | show public keys · send a test alert |
 
 ## Safety and scope
 
-- Targets: only the router's own public addresses and global IPv6 addresses observed in the own LAN. The probe refuses
-  any target list that is not signed by the guard and any non-global address.
-- LAN: no SYN or version scans against IoT devices; one TCP connect scan per week at `-T2` with a packet-rate cap on a
-  short list of web ports, then one GET of each start page and at most three TLS handshakes. No credentials are sent.
-- Router: only `Get*` actions (enforced in code).
-- The container runs as an unprivileged user with all capabilities dropped, read-only root filesystem, 256 MB / 0.5 CPU,
+- 🎯 **Targets:** only the router's own public addresses and global IPv6 addresses observed in the own LAN. The probe
+  refuses any target list that is not signed by the guard and any non-global address.
+- 🐢 **LAN:** no SYN or version scans against IoT devices; one TCP connect scan per week at `-T2` with a packet-rate cap
+  on a short list of web ports, then one GET of each start page and at most three TLS handshakes. No credentials are sent.
+- 📡 **Router:** only `Get*` actions (enforced in code).
+- 📦 **Container:** unprivileged user, all capabilities dropped, read-only root filesystem, 256 MB / 0.5 CPU,
   log rotation (3 x 10 MB), restart `unless-stopped`.
 
 ## Tests
@@ -183,9 +224,10 @@ state `unknown`, recovery, no write action on the router.
 ```bash
 cd /opt/exposure-guard && sudo docker compose down && sudo rm -rf /opt/exposure-guard /usr/local/bin/exposure-guard
 ```
+
 On the VPS: `systemctl disable --now exposure-probe-scan.timer exposure-probe-request.path`, `userdel -r probe`,
 `rm -rf /opt/exposure-probe /etc/exposure-probe` - or simply delete the VPS.
 
 ## License
 
-MIT
+[MIT](LICENSE)
