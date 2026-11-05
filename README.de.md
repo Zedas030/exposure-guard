@@ -133,6 +133,8 @@ Dashboard: `grafana/exposure-guard.json` (uid `exposure-guard`).
 
 Alle Secrets stehen ausschließlich in **`/opt/exposure-guard/.env`** (Rechte 600, Besitzer root, nur Docker Compose
 liest sie). In `config.yaml` stehen nur die *Namen* der Variablen. Vorlage: [.env.example](.env.example).
+Eintragen oder ändern mit `sudo nano /opt/exposure-guard/.env` oder geführt mit verdeckter Eingabe:
+`sudo /opt/exposure-guard/scripts/set-secrets.sh`; danach `docker compose up -d --force-recreate`.
 
 | Variable | Was | Anlegen / ändern (rotieren) |
 |---|---|---|
